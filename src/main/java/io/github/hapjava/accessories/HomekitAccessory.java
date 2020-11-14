@@ -1,10 +1,7 @@
 package io.github.hapjava.accessories;
 
 import io.github.hapjava.services.Service;
-import io.github.hapjava.services.impl.AccessoryInformationService;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Base interface for all HomeKit Accessories. You can implement this interface directly, but most
@@ -29,41 +26,7 @@ public interface HomekitAccessory {
    *
    * @return the label.
    */
-  CompletableFuture<String> getName();
-
-  /**
-   * Performs an operation that can be used to identify the accessory. This action can be performed
-   * without pairing.
-   */
-  void identify();
-
-  /**
-   * Returns a serial number to display in iOS.
-   *
-   * @return the serial number, or null.
-   */
-  CompletableFuture<String> getSerialNumber();
-
-  /**
-   * Returns a model name to display in iOS.
-   *
-   * @return the model name, or null.
-   */
-  CompletableFuture<String> getModel();
-
-  /**
-   * Returns a manufacturer to display in iOS.
-   *
-   * @return the manufacturer, or null.
-   */
-  CompletableFuture<String> getManufacturer();
-
-  /**
-   * Returns a firmware revision to display in iOS.
-   *
-   * @return the firmware revision, or null.
-   */
-  CompletableFuture<String> getFirmwareRevision();
+  String getName();
 
   /**
    * The collection of Services this accessory supports. Services are the primary way to interact
@@ -76,16 +39,5 @@ public interface HomekitAccessory {
    *
    * @return the collection of services.
    */
-  default Collection<Service> getServices() {
-    return Collections.singleton(new AccessoryInformationService(this));
-  };
-
-  /**
-   * default implementation which is sufficient if accessory has only one services
-   *
-   * @return primary service
-   */
-  default Service getPrimaryService() {
-    return getServices().iterator().next();
-  };
+  Collection<Service> getServices();
 }

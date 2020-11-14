@@ -11,6 +11,14 @@ import java.util.List;
 public interface Service {
 
   /**
+   * According to the HAP spec, an object has to provide its own unique Instance ID (iid) stable for
+   * the whole lifetime of that particular accessory.
+   *
+   * @return An ID of this service's instance
+   */
+  int iid();
+
+  /**
    * Characteristics are the variables offered for reading, updating, and eventing by the Service
    * over the HomeKit protocol.
    *

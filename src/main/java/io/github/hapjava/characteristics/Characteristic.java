@@ -20,6 +20,14 @@ import javax.json.JsonValue;
 public interface Characteristic {
 
   /**
+   * According to the HAP spec, an object has to provide its own unique Instance ID (iid) stable for
+   * the whole lifetime of that particular accessory.
+   *
+   * @return An ID of this characteristic's instance
+   */
+  int iid();
+
+  /**
    * Adds an attribute to the passed JsonObjectBuilder named "value" with the current value of the
    * characteristic.
    *

@@ -26,7 +26,7 @@ public class HomekitStandaloneAccessoryServer {
       InetAddress localhost,
       HomekitAuthInfo authInfo)
       throws UnknownHostException, IOException, ExecutionException, InterruptedException {
-    root = new HomekitRoot(accessory.getName().get(), webHandler, localhost, authInfo);
+    root = new HomekitRoot(accessory.getName(), webHandler, localhost, authInfo);
     root.addAccessory(accessory);
   }
 

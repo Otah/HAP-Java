@@ -3,6 +3,7 @@ package io.github.hapjava.server.impl;
 import io.github.hapjava.accessories.HomekitAccessory;
 import io.github.hapjava.server.HomekitAuthInfo;
 import io.github.hapjava.server.impl.http.impl.HomekitHttpServer;
+import io.github.hapjava.services.Service;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -13,7 +14,7 @@ import java.util.concurrent.ExecutionException;
  * The main entry point for hap-java. Creating an instance of this class will listen for HomeKit
  * connections on the supplied port. Only a single root accessory can be added for each unique
  * instance and port, however, that accessory may be a {@link #createBridge(HomekitAuthInfo, String,
- * String, String, String, String, String) bridge accessory} containing child accessories.
+ * Service) bridge accessory} containing child accessories.
  *
  * <p>The {@link HomekitAuthInfo HomekitAuthInfo} argument when creating accessories should be an
  * implementation supplied by your application. Several of the values needed for your implementation
@@ -95,29 +96,15 @@ public class HomekitServer {
    * @param authInfo authentication information for this accessory. These values should be persisted
    *     and re-supplied on re-start of your application.
    * @param label label for the bridge. This will show in iOS during pairing.
-   * @param manufacturer manufacturer of the bridge. This information is exposed to iOS for unknown
-   *     purposes.
-   * @param model model of the bridge. This is also exposed to iOS for unknown purposes.
-   * @param serialNumber serial number of the bridge. Also exposed. Purposes also unknown.
-   * @param firmwareRevision firmware revision of the bridge.
-   * @param hardwareRevision hardware revision of the brigde.
+   * @param info The accessory info service
    * @return the bridge, from which you can {@link HomekitRoot#addAccessory add accessories} and
    *     then {@link HomekitRoot#start start} handling requests.
    * @throws IOException when mDNS cannot connect to the network
    */
-  public HomekitRoot createBridge(
-      HomekitAuthInfo authInfo,
-      String label,
-      String manufacturer,
-      String model,
-      String serialNumber,
-      String firmwareRevision,
-      String hardwareRevision)
+  public HomekitRoot createBridge(HomekitAuthInfo authInfo, String label, Service info)
       throws IOException {
     HomekitRoot root = new HomekitRoot(label, http, localAddress, authInfo);
-    root.addAccessory(
-        new HomekitBridge(
-            label, serialNumber, model, manufacturer, firmwareRevision, hardwareRevision));
+    root.addAccessory(new HomekitBridge(label, info));
     return root;
   }
 
