@@ -31,11 +31,9 @@ public class AccessoryController {
 
     Map<Integer, List<CompletableFuture<JsonObject>>> accessoryServiceFutures = new HashMap<>();
     for (HomekitAccessory accessory : registry.getAccessories()) {
-      int iid = 0;
       List<CompletableFuture<JsonObject>> serviceFutures = new ArrayList<>();
       for (Service service : registry.getServices(accessory.getId())) {
-        serviceFutures.add(toJson(service, iid));
-        iid += service.getCharacteristics().size() + 1;
+        serviceFutures.add(toJson(service));
       }
       accessoryServiceFutures.put(accessory.getId(), serviceFutures);
     }
@@ -64,16 +62,16 @@ public class AccessoryController {
     }
   }
 
-  private CompletableFuture<JsonObject> toJson(Service service, int interfaceId) throws Exception {
+  private CompletableFuture<JsonObject> toJson(Service service) throws Exception {
     String shortType =
         service.getType().replaceAll("^0*([0-9a-fA-F]+)-0000-1000-8000-0026BB765291$", "$1");
     JsonObjectBuilder builder =
-        Json.createObjectBuilder().add("iid", ++interfaceId).add("type", shortType);
+        Json.createObjectBuilder().add("iid", service.iid()).add("type", shortType);
     List<Characteristic> characteristics = service.getCharacteristics();
     Collection<CompletableFuture<JsonObject>> characteristicFutures =
         new ArrayList<>(characteristics.size());
     for (Characteristic characteristic : characteristics) {
-      characteristicFutures.add(characteristic.toJson(++interfaceId));
+      characteristicFutures.add(characteristic.toJson(characteristic.iid()));
     }
 
     return CompletableFuture.allOf(

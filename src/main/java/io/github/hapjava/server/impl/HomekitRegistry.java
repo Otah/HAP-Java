@@ -29,7 +29,6 @@ public class HomekitRegistry {
     characteristics.clear();
     services.clear();
     for (HomekitAccessory accessory : accessories.values()) {
-      int iid = 0;
       List<Service> newServices;
       try {
         newServices = new ArrayList<>(2);
@@ -42,9 +41,8 @@ public class HomekitRegistry {
       Map<Integer, Characteristic> newCharacteristics = new HashMap<>();
       services.put(accessory, newServices);
       for (Service service : newServices) {
-        iid++;
         for (Characteristic characteristic : service.getCharacteristics()) {
-          newCharacteristics.put(++iid, characteristic);
+          newCharacteristics.put(characteristic.iid(), characteristic);
         }
       }
       characteristics.put(accessory, newCharacteristics);
