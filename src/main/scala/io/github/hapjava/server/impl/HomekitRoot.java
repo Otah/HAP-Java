@@ -1,6 +1,5 @@
 package io.github.hapjava.server.impl;
 
-import io.github.hapjava.accessories.Bridge;
 import io.github.hapjava.accessories.HomekitAccessory;
 import io.github.hapjava.server.HomekitAuthInfo;
 import io.github.hapjava.server.HomekitWebHandler;
@@ -51,54 +50,7 @@ public class HomekitRoot {
     this.webHandler = webHandler;
     this.authInfo = authInfo;
     this.label = label;
-    this.registry = new HomekitRegistry(label);
-  }
-
-  /**
-   * Add an accessory to be handled and advertised by this root. Any existing HomeKit connections
-   * will be terminated to allow the clients to reconnect and see the updated accessory list. When
-   * using this for a bridge, the ID of the accessory must be greater than 1, as that ID is reserved
-   * for the Bridge itself.
-   *
-   * @param accessory to advertise and handle.
-   */
-  public void addAccessory(HomekitAccessory accessory) {
-    if (accessory.getId() <= 1 && !(accessory instanceof Bridge)) {
-      throw new IndexOutOfBoundsException(
-          "The ID of an accessory used in a bridge must be greater than 1");
-    }
-    addAccessorySkipRangeCheck(accessory);
-  }
-
-  /**
-   * Skips the range check. Used by {@link HomekitStandaloneAccessoryServer} as well as {@link
-   * #addAccessory(HomekitAccessory)};
-   *
-   * @param accessory to advertise and handle.
-   */
-  void addAccessorySkipRangeCheck(HomekitAccessory accessory) {
-    this.registry.add(accessory);
-    logger.trace("Added accessory " + accessory.getName());
-    if (started) {
-      registry.reset();
-      webHandler.resetConnections();
-    }
-  }
-
-  /**
-   * Removes an accessory from being handled or advertised by this root. Any existing HomeKit
-   * connections will be terminated to allow the clients to reconnect and see the updated accessory
-   * list.
-   *
-   * @param accessory accessory to cease advertising and handling
-   */
-  public void removeAccessory(HomekitAccessory accessory) {
-    this.registry.remove(accessory);
-    logger.trace("Removed accessory " + accessory.getName());
-    if (started) {
-      registry.reset();
-      webHandler.resetConnections();
-    }
+    this.registry = new HomekitRegistry();
   }
 
   /**
@@ -109,7 +61,6 @@ public class HomekitRoot {
    */
   public void start() {
     started = true;
-    registry.reset();
     webHandler
         .start(
             new HomekitClientConnectionFactoryImpl(authInfo, registry, subscriptions, advertiser))

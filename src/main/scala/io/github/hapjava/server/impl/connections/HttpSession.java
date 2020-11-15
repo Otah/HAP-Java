@@ -7,8 +7,7 @@ import io.github.hapjava.server.impl.http.HomekitClientConnection;
 import io.github.hapjava.server.impl.http.HttpRequest;
 import io.github.hapjava.server.impl.http.HttpResponse;
 import io.github.hapjava.server.impl.jmdns.JmdnsHomekitAdvertiser;
-import io.github.hapjava.server.impl.json.AccessoryController;
-import io.github.hapjava.server.impl.json.CharacteristicsController;
+import io.github.hapjava.server.impl.json.AccessoryDatabase;
 import io.github.hapjava.server.impl.pairing.PairVerificationManager;
 import io.github.hapjava.server.impl.pairing.PairingManager;
 import io.github.hapjava.server.impl.pairing.PairingUpdateController;
@@ -16,19 +15,22 @@ import io.github.hapjava.server.impl.responses.InternalServerErrorResponse;
 import io.github.hapjava.server.impl.responses.NotFoundResponse;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.concurrent.Await;
+import scala.concurrent.ExecutionContext;
+import scala.concurrent.duration.FiniteDuration;
 
 class HttpSession {
 
   private volatile PairingManager pairingManager;
   private volatile PairVerificationManager pairVerificationManager;
-  private volatile AccessoryController accessoryController;
-  private volatile CharacteristicsController characteristicsController;
 
   private final HomekitAuthInfo authInfo;
   private final HomekitRegistry registry;
-  private final SubscriptionManager subscriptions;
+  private final AccessoryDatabase database;
   private final HomekitClientConnection connection;
   private final JmdnsHomekitAdvertiser advertiser;
 
@@ -37,14 +39,13 @@ class HttpSession {
   public HttpSession(
       HomekitAuthInfo authInfo,
       HomekitRegistry registry,
-      SubscriptionManager subscriptions,
       HomekitClientConnection connection,
       JmdnsHomekitAdvertiser advertiser) {
     this.authInfo = authInfo;
     this.registry = registry;
-    this.subscriptions = subscriptions;
     this.connection = connection;
     this.advertiser = advertiser;
+    this.database = new AccessoryDatabase(registry.getRoot(), ExecutionContext.global());
   }
 
   public HttpResponse handleRequest(HttpRequest request) throws IOException {
@@ -65,13 +66,21 @@ class HttpSession {
     }
   }
 
+  private <T> T waitFor(scala.concurrent.Future<T> future) throws IOException {
+    try {
+      return Await.result(future, FiniteDuration.apply(30, TimeUnit.SECONDS));
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
   public HttpResponse handleAuthenticatedRequest(HttpRequest request) throws IOException {
     advertiser.setDiscoverable(
         false); // brigde is already bound and should not be discoverable anymore
     try {
       switch (request.getUri()) {
         case "/accessories":
-          return getAccessoryController().listing();
+          return waitFor(database.listAllAccessories());
 
         case "/characteristics":
           switch (request.getMethod()) {
@@ -88,7 +97,7 @@ class HttpSession {
 
         default:
           if (request.getUri().startsWith("/characteristics?")) {
-            return getCharacteristicsController().get(request);
+            return waitFor(database.getCharacteristicsValues(request.getUri().substring("/characteristics?id=".length())));
           }
           logger.warn("Unrecognized request for " + request.getUri());
           return new NotFoundResponse();
@@ -103,7 +112,7 @@ class HttpSession {
     if (pairingManager == null) {
       synchronized (HttpSession.class) {
         if (pairingManager == null) {
-          pairingManager = new PairingManager(authInfo, registry);
+          pairingManager = new PairingManager(authInfo, registry.getLabel());
         }
       }
     }
@@ -119,7 +128,7 @@ class HttpSession {
     if (pairVerificationManager == null) {
       synchronized (HttpSession.class) {
         if (pairVerificationManager == null) {
-          pairVerificationManager = new PairVerificationManager(authInfo, registry);
+          pairVerificationManager = new PairVerificationManager(authInfo, registry.getLabel());
         }
       }
     }
@@ -129,20 +138,6 @@ class HttpSession {
       logger.warn("Exception encountered while verifying pairing", e);
       return new InternalServerErrorResponse(e);
     }
-  }
-
-  private synchronized AccessoryController getAccessoryController() {
-    if (accessoryController == null) {
-      accessoryController = new AccessoryController(registry);
-    }
-    return accessoryController;
-  }
-
-  private synchronized CharacteristicsController getCharacteristicsController() {
-    if (characteristicsController == null) {
-      characteristicsController = new CharacteristicsController(registry, subscriptions);
-    }
-    return characteristicsController;
   }
 
   public static class SessionKey {

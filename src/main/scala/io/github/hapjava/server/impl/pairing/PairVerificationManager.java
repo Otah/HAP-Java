@@ -29,16 +29,16 @@ public class PairVerificationManager {
   private static volatile SecureRandom secureRandom;
 
   private final HomekitAuthInfo authInfo;
-  private final HomekitRegistry registry;
+  private final String label;
 
   private byte[] hkdfKey;
   private byte[] clientPublicKey;
   private byte[] publicKey;
   private byte[] sharedSecret;
 
-  public PairVerificationManager(HomekitAuthInfo authInfo, HomekitRegistry registry) {
+  public PairVerificationManager(HomekitAuthInfo authInfo, String label) {
     this.authInfo = authInfo;
-    this.registry = registry;
+    this.label = label;
   }
 
   public HttpResponse handle(HttpRequest rawRequest) throws Exception {
@@ -56,7 +56,7 @@ public class PairVerificationManager {
   }
 
   private HttpResponse stage1(Stage1Request request) throws Exception {
-    logger.trace("Starting pair verification for " + registry.getLabel());
+    logger.trace("Starting pair verification for " + label);
     clientPublicKey = request.getClientPublicKey();
     publicKey = new byte[32];
     byte[] privateKey = new byte[32];
@@ -116,14 +116,14 @@ public class PairVerificationManager {
     Encoder encoder = TypeLengthValueUtils.getEncoder();
     if (new EdsaVerifier(clientLtpk).verify(material, clientSignature)) {
       encoder.add(MessageType.STATE, (short) 4);
-      logger.trace("Completed pair verification for " + registry.getLabel());
+      logger.trace("Completed pair verification for " + label);
       return new UpgradeResponse(
           encoder.toByteArray(),
           createKey("Control-Write-Encryption-Key"),
           createKey("Control-Read-Encryption-Key"));
     } else {
       encoder.add(MessageType.ERROR, (short) 4);
-      logger.warn("Invalid signature. Could not pair " + registry.getLabel());
+      logger.warn("Invalid signature. Could not pair " + label);
       return new OkResponse(encoder.toByteArray());
     }
   }

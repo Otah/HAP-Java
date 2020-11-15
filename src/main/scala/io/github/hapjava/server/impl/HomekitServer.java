@@ -1,6 +1,7 @@
 package io.github.hapjava.server.impl;
 
-import io.github.hapjava.accessories.HomekitAccessory;
+import com.github.otah.hap.api.server.HomeKitAuthentication;
+import com.github.otah.hap.api.server.HomeKitServer;
 import io.github.hapjava.server.HomekitAuthInfo;
 import io.github.hapjava.server.impl.http.impl.HomekitHttpServer;
 import io.github.hapjava.services.Service;
@@ -8,7 +9,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.security.InvalidAlgorithmParameterException;
-import java.util.concurrent.ExecutionException;
 
 /**
  * The main entry point for hap-java. Creating an instance of this class will listen for HomeKit
@@ -28,84 +28,27 @@ import java.util.concurrent.ExecutionException;
 public class HomekitServer {
 
   private final HomekitHttpServer http;
-  private final InetAddress localAddress;
+  private final HomekitRoot root;
 
-  /**
-   * Constructor. Contains an argument indicating the number of threads to use in the http server.
-   * The other constructors default this to the number of available processors, however you may
-   * increase this in an environment with many users and/or blocking accessory implementations.
-   *
-   * @param localAddress local address to bind to.
-   * @param port local port to bind to.
-   * @param nThreads number of threads to use in the http server
-   * @throws IOException when the server cannot bind to the supplied port
-   */
-  public HomekitServer(InetAddress localAddress, int port, int nThreads) throws IOException {
-    this.localAddress = localAddress;
-    http = new HomekitHttpServer(localAddress, port, nThreads);
+  public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo, int nThreads) throws IOException {
+    String hostString = serverDef.host().getOrElse(() -> null);
+    InetAddress host = hostString == null ? InetAddress.getLocalHost() : InetAddress.getByName(hostString);
+    http = new HomekitHttpServer(host, serverDef.port(), nThreads);
+    root = new HomekitRoot(serverDef.root().info().label(), http, host, new AuthConverter(authInfo));
   }
 
-  /**
-   * Constructor
-   *
-   * @param localAddress local address to bind to
-   * @param port local port to bind to
-   * @throws IOException when the server cannot bind to the supplied port
-   */
-  public HomekitServer(InetAddress localAddress, int port) throws IOException {
-    this(localAddress, port, Runtime.getRuntime().availableProcessors());
+  public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo) throws IOException {
+    this(serverDef, authInfo, Runtime.getRuntime().availableProcessors());
   }
 
-  /**
-   * Constructor
-   *
-   * @param port local port to bind to.
-   * @throws IOException when the server cannot bind to the supplied port
-   */
-  public HomekitServer(int port) throws IOException {
-    this(InetAddress.getLocalHost(), port);
+  public void start() {
+    root.start();
   }
 
   /** Stops the service, closing down existing connections and preventing new ones. */
   public void stop() {
+    root.stop();
     http.stop();
-  }
-
-  /**
-   * Creates a single (non-bridge) accessory
-   *
-   * @param authInfo authentication information for this accessory. These values should be persisted
-   *     and re-supplied on re-start of your application.
-   * @param accessory accessory implementation. This will usually be an implementation of an
-   *     interface in {#link io.github.hapjava.accessories io.github.hapjava.accessories}.
-   * @return the newly created server. Call {@link HomekitStandaloneAccessoryServer#start start} on
-   *     this to begin.
-   * @throws IOException when mDNS cannot connect to the network
-   */
-  public HomekitStandaloneAccessoryServer createStandaloneAccessory(
-      HomekitAuthInfo authInfo, HomekitAccessory accessory)
-      throws IOException, ExecutionException, InterruptedException {
-    return new HomekitStandaloneAccessoryServer(accessory, http, localAddress, authInfo);
-  }
-
-  /**
-   * Creates a bridge accessory, capable of holding multiple child accessories. This has the
-   * advantage over multiple standalone accessories of only requiring a single pairing from iOS for
-   * the bridge.
-   *
-   * @param authInfo authentication information for this accessory. These values should be persisted
-   *     and re-supplied on re-start of your application.
-   * @param label label for the bridge. This will show in iOS during pairing.
-   * @param info The accessory info service
-   * @return the bridge, from which you can {@link HomekitRoot#addAccessory add accessories} and
-   *     then {@link HomekitRoot#start start} handling requests.
-   * @throws IOException when mDNS cannot connect to the network
-   */
-  public HomekitRoot createBridge(HomekitAuthInfo authInfo, String label, Service info)
-      throws IOException {
-    HomekitRoot root = new HomekitRoot(label, http, localAddress, authInfo);
-    root.addAccessory(new HomekitBridge(label, info));
-    return root;
   }
 
   /**

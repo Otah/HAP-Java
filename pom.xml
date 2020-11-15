@@ -147,6 +147,16 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.github.otah</groupId>
+			<artifactId>hap-api_2.12</artifactId>
+			<version>0.8.0-server-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.eed3si9n</groupId>
+			<artifactId>shaded-scalajson_2.12</artifactId>
+			<version>1.0.0-M4</version>
+		</dependency>
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
