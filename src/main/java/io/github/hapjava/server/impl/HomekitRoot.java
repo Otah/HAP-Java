@@ -7,6 +7,7 @@ import io.github.hapjava.server.HomekitWebHandler;
 import io.github.hapjava.server.impl.connections.HomekitClientConnectionFactoryImpl;
 import io.github.hapjava.server.impl.connections.SubscriptionManager;
 import io.github.hapjava.server.impl.jmdns.JmdnsHomekitAdvertiser;
+import io.github.hapjava.services.Service;
 import java.io.IOException;
 import java.net.InetAddress;
 import org.slf4j.Logger;
@@ -16,8 +17,8 @@ import org.slf4j.LoggerFactory;
  * Provides advertising and handling for HomeKit accessories. This class handles the advertising of
  * HomeKit accessories and contains one or more accessories. When implementing a bridge accessory,
  * you will interact with this class directly. Instantiate it via {@link
- * HomekitServer#createBridge(HomekitAuthInfo, String, String, String, String, String, String)}. For
- * single accessories, this is composed by {@link HomekitStandaloneAccessoryServer}.
+ * HomekitServer#createBridge(HomekitAuthInfo, String, Service)}. For single accessories, this is
+ * composed by {@link HomekitStandaloneAccessoryServer}.
  *
  * @author Andy Lintner
  */
