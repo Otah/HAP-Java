@@ -10,7 +10,9 @@ import io.github.hapjava.server.impl.http.HttpResponse;
 import io.github.hapjava.server.impl.responses.NotFoundResponse;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import javax.json.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +34,7 @@ public class CharacteristicsController {
     // Characteristics are requested with /characteristics?id=1.1,2.1,3.1
     String query = uri.substring("/characteristics?id=".length());
     String[] ids = query.split(",");
-    JsonArrayBuilder characteristics = Json.createArrayBuilder();
+    ArrayList<CompletableFuture<JsonObject>> futureObjects = new ArrayList<>();
     for (String id : ids) {
       String[] parts = id.split("\\.");
       if (parts.length != 2) {
@@ -41,19 +43,21 @@ public class CharacteristicsController {
       }
       int aid = Integer.parseInt(parts[0]);
       int iid = Integer.parseInt(parts[1]);
-      JsonObjectBuilder characteristic = Json.createObjectBuilder();
       Map<Integer, Characteristic> characteristicMap = registry.getCharacteristics(aid);
       if (!characteristicMap.isEmpty()) {
         Characteristic targetCharacteristic = characteristicMap.get(iid);
         if (targetCharacteristic != null) {
-          characteristics.add(
-              characteristic
-                  .add("aid", aid)
-                  .add("iid", iid)
-                  .add(
-                      "value",
-                      targetCharacteristic.getValue().get()) // FIXME get rid of the blocking get()
-                  .build());
+          CompletableFuture<JsonObject> future =
+              targetCharacteristic
+                  .getValue()
+                  .thenApply(
+                      value ->
+                          Json.createObjectBuilder()
+                              .add("aid", aid)
+                              .add("iid", iid)
+                              .add("value", value)
+                              .build());
+          futureObjects.add(future);
         } else {
           logger.warn(
               "Accessory " + aid + " does not have characteristic " + iid + "Request: " + uri);
@@ -62,6 +66,12 @@ public class CharacteristicsController {
         logger.warn(
             "Accessory " + aid + " has no characteristics or does not exist. Request: " + uri);
       }
+    }
+    JsonArrayBuilder characteristics = Json.createArrayBuilder();
+    // transform the happy async world to the sad blocking world again
+    for (CompletableFuture<JsonObject> future : futureObjects) {
+      characteristics.add(
+          future.get()); // here we can block again, as all the futures were already started async
     }
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       Json.createWriter(baos)
