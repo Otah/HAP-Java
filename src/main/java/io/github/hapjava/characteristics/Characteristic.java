@@ -2,7 +2,6 @@ package io.github.hapjava.characteristics;
 
 import java.util.concurrent.CompletableFuture;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
 /**
@@ -28,12 +27,11 @@ public interface Characteristic {
   int iid();
 
   /**
-   * Adds an attribute to the passed JsonObjectBuilder named "value" with the current value of the
-   * characteristic.
+   * Gets the current value of the characteristic.
    *
-   * @param characteristicBuilder the JsonObjectBuilder to add the value attribute to.
+   * @return Future of current value
    */
-  void supplyValue(JsonObjectBuilder characteristicBuilder);
+  CompletableFuture<JsonValue> getValue();
 
   /**
    * Creates the JSON representation of the characteristic, in accordance with the HomeKit Accessory

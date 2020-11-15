@@ -46,9 +46,14 @@ public class CharacteristicsController {
       if (!characteristicMap.isEmpty()) {
         Characteristic targetCharacteristic = characteristicMap.get(iid);
         if (targetCharacteristic != null) {
-          targetCharacteristic.supplyValue(characteristic);
-
-          characteristics.add(characteristic.add("aid", aid).add("iid", iid).build());
+          characteristics.add(
+              characteristic
+                  .add("aid", aid)
+                  .add("iid", iid)
+                  .add(
+                      "value",
+                      targetCharacteristic.getValue().get()) // FIXME get rid of the blocking get()
+                  .build());
         } else {
           logger.warn(
               "Accessory " + aid + " does not have characteristic " + iid + "Request: " + uri);
