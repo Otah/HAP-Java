@@ -1,15 +1,15 @@
 package io.github.hapjava.server.impl.connections;
 
-import io.github.hapjava.characteristics.EventableCharacteristic;
+import javax.json.JsonValue;
 
 public class PendingNotification {
-  public int aid;
-  public int iid;
-  public EventableCharacteristic characteristic;
+  public final int aid;
+  public final int iid;
+  public final JsonValue changed;
 
-  public PendingNotification(int aid, int iid, EventableCharacteristic characteristic) {
+  public PendingNotification(int aid, int iid, JsonValue changed) {
     this.aid = aid;
     this.iid = iid;
-    this.characteristic = characteristic;
+    this.changed = changed;
   }
 }

@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import javax.json.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +37,7 @@ public class SubscriptionManager {
       }
       subscriptions.get(characteristic).add(connection);
       if (subscriptions.get(characteristic).size() == 1) {
-        characteristic.subscribe(
-            () -> {
-              publish(aid, iid, characteristic);
-            });
+        characteristic.subscribe(newValue -> publish(aid, iid, characteristic, newValue));
       }
 
       if (!reverse.containsKey(connection)) {
@@ -111,15 +109,16 @@ public class SubscriptionManager {
     }
   }
 
-  public synchronized void publish(int accessoryId, int iid, EventableCharacteristic changed) {
+  public synchronized void publish(
+      int accessoryId, int iid, EventableCharacteristic changed, JsonValue newValue) {
     final Set<HomekitClientConnection> subscribers = subscriptions.get(changed);
     if ((subscribers == null) || (subscribers.isEmpty())) {
       LOGGER.debug("No subscribers to characteristic {} at accessory {} ", changed, accessoryId);
       return; // no subscribers
     }
     if (nestedBatches != 0) {
-      LOGGER.trace("Batching change for accessory {} and characteristic {} " + accessoryId, iid);
-      PendingNotification notification = new PendingNotification(accessoryId, iid, changed);
+      LOGGER.trace("Batching change for accessory {} and characteristic {} ", accessoryId, iid);
+      PendingNotification notification = new PendingNotification(accessoryId, iid, newValue);
       for (HomekitClientConnection connection : subscribers) {
         if (!pendingNotifications.containsKey(connection)) {
           pendingNotifications.put(connection, new ArrayList<PendingNotification>());
@@ -130,7 +129,7 @@ public class SubscriptionManager {
     }
 
     try {
-      HttpResponse message = new EventController().getMessage(accessoryId, iid, changed);
+      HttpResponse message = new EventController().getMessage(accessoryId, iid, newValue);
       LOGGER.trace("Publishing change for " + accessoryId);
       for (HomekitClientConnection connection : subscribers) {
         connection.outOfBand(message);
