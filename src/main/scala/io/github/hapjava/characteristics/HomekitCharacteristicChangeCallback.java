@@ -1,12 +1,12 @@
 package io.github.hapjava.characteristics;
 
-import javax.json.JsonValue;
+import spray.json.JsValue;
 
 /**
  * A callback interface for notifying subscribers that a characteristic value has changed.
  *
  * <p>{@link EventableCharacteristic}s can be subscribed to, and in doing so, are supplied an
- * instance of this class. Implementors should call the {@link #changed(JsonValue)} method on the
+ * instance of this class. Implementors should call the {@link #changed(JsValue)} method on the
  * passed object when a subscribed characteristic changes.
  *
  * @author Andy Lintner
@@ -18,5 +18,5 @@ public interface HomekitCharacteristicChangeCallback {
    * Call when the value of the characteristic that was subscribed to when this object was passed
    * changes.
    */
-  void changed(JsonValue newValue);
+  void changed(JsValue newValue);
 }

@@ -1,5 +1,7 @@
 package io.github.hapjava.server.impl.json
 
+import java.util.concurrent.ConcurrentHashMap
+
 import com.github.otah.hap.api._
 import com.github.otah.hap.api.json.AccessoryJson
 import com.github.otah.hap.api.server.HomeKitRoot
@@ -8,6 +10,7 @@ import io.github.hapjava.server.impl.connections.SubscriptionManager
 import io.github.hapjava.server.impl.http.{HomekitClientConnection, HttpResponse}
 import spray.json._
 
+import scala.collection.JavaConverters._
 import scala.concurrent._
 import scala.util.Try
 
@@ -24,13 +27,27 @@ class AccessoryDatabase(
   }
   import JsonProtocol._
 
-  private def toEventable(characteristic: LowLevelCharacteristic) =
+  private def toEventable(characteristic: LowLevelCharacteristic) = characteristic.jsonValueNotifier map { notifier =>
     new io.github.hapjava.characteristics.EventableCharacteristic {
 
-      override def subscribe(callback: HomekitCharacteristicChangeCallback): Unit = xxx
+      private val subscriptions = new ConcurrentHashMap[Subscription, Unit]()
 
-      override def unsubscribe(): Unit = xxx
+      override def subscribe(callback: HomekitCharacteristicChangeCallback): Unit = {
+        val subscription = notifier.subscribe { v =>
+          Future(callback.changed(v))
+        }
+
+        subscriptions.put(subscription, ())
+      }
+
+      override def unsubscribe(): Unit = {
+        subscriptions.keySet().asScala.toSet foreach { subscription: Subscription =>
+          subscriptions.remove(subscription)
+          subscription.unsubscribe()
+        }
+      }
     }
+  }
 
   private val characteristicsAsMap = root.accessories.flatMap {
     case (InstanceId(aid), accessory) =>
@@ -70,15 +87,14 @@ class AccessoryDatabase(
         characteristicsAsMap.get((update.aid, update.iid)) map (update -> _)
       }
 
-      withMatchedCharacteristics foreach { case (update, (characteristic, eventable)) =>
-        import update._
+      withMatchedCharacteristics foreach { case (update, (characteristic, maybeEventable)) =>
 
-        ev foreach {
-          case true => subscriptions.addSubscription(aid, iid, eventable, clientConnection)
-          case false => subscriptions.removeSubscription(eventable, clientConnection)
+        maybeEventable zip update.ev foreach {
+          case (eventable, true) => subscriptions.addSubscription(update.aid, update.iid, eventable, clientConnection)
+          case (eventable, false) => subscriptions.removeSubscription(eventable, clientConnection)
         }
 
-        value foreach { v =>
+        update.value foreach { v =>
           characteristic.jsonWriter foreach (_.apply(v)) //TODO wait for the future and potentially evaluate the error
         }
       }
