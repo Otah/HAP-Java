@@ -37,7 +37,12 @@ public class HomekitServer {
         hostString == null ? InetAddress.getLocalHost() : InetAddress.getByName(hostString);
     http = new HomekitHttpServer(host, serverDef.port(), nThreads);
     root =
-        new HomekitRoot(serverDef.root().info().label(), http, host, new AuthConverter(authInfo));
+        new HomekitRoot(
+            serverDef.root().info().label(),
+            http,
+            host,
+            new AuthConverter(authInfo),
+            serverDef.root());
   }
 
   public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo) throws IOException {

@@ -1,5 +1,6 @@
 package io.github.hapjava.server.impl;
 
+import com.github.otah.hap.api.server.HomeKitRoot;
 import io.github.hapjava.accessories.HomekitAccessory;
 import io.github.hapjava.server.HomekitAuthInfo;
 import io.github.hapjava.server.HomekitWebHandler;
@@ -35,22 +36,27 @@ public class HomekitRoot {
   private int configurationIndex = 1;
 
   HomekitRoot(
-      String label, HomekitWebHandler webHandler, InetAddress localhost, HomekitAuthInfo authInfo)
+      String label,
+      HomekitWebHandler webHandler,
+      InetAddress localhost,
+      HomekitAuthInfo authInfo,
+      HomeKitRoot root)
       throws IOException {
-    this(label, webHandler, authInfo, new JmdnsHomekitAdvertiser(localhost));
+    this(label, webHandler, authInfo, root, new JmdnsHomekitAdvertiser(localhost));
   }
 
   HomekitRoot(
       String label,
       HomekitWebHandler webHandler,
       HomekitAuthInfo authInfo,
+      HomeKitRoot root,
       JmdnsHomekitAdvertiser advertiser)
       throws IOException {
     this.advertiser = advertiser;
     this.webHandler = webHandler;
     this.authInfo = authInfo;
     this.label = label;
-    this.registry = new HomekitRegistry();
+    this.registry = new HomekitRegistry(root);
   }
 
   /**
