@@ -2,7 +2,6 @@ package io.github.hapjava.server.impl.pairing;
 
 import djb.Curve25519;
 import io.github.hapjava.server.HomekitAuthInfo;
-import io.github.hapjava.server.impl.HomekitRegistry;
 import io.github.hapjava.server.impl.crypto.ChachaDecoder;
 import io.github.hapjava.server.impl.crypto.ChachaEncoder;
 import io.github.hapjava.server.impl.crypto.EdsaSigner;

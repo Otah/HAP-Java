@@ -16,12 +16,12 @@ import io.github.hapjava.server.impl.responses.NotFoundResponse;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.concurrent.Await;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.FiniteDuration;
+import spray.json.JsValue;
 
 class HttpSession {
 
@@ -39,13 +39,16 @@ class HttpSession {
   public HttpSession(
       HomekitAuthInfo authInfo,
       HomekitRegistry registry,
+      SubscriptionManager subscriptions,
       HomekitClientConnection connection,
       JmdnsHomekitAdvertiser advertiser) {
     this.authInfo = authInfo;
     this.registry = registry;
     this.connection = connection;
     this.advertiser = advertiser;
-    this.database = new AccessoryDatabase(registry.getRoot(), ExecutionContext.global());
+    this.database =
+        new AccessoryDatabase(
+            registry.getRoot(), subscriptions, ExecutionContext.global(), JsValue::prettyPrint);
   }
 
   public HttpResponse handleRequest(HttpRequest request) throws IOException {
@@ -85,7 +88,7 @@ class HttpSession {
         case "/characteristics":
           switch (request.getMethod()) {
             case PUT:
-              return getCharacteristicsController().put(request, connection);
+              return database.putCharacteristics(request.getBody(), connection);
 
             default:
               logger.warn("Unrecognized method for " + request.getUri());
@@ -97,7 +100,9 @@ class HttpSession {
 
         default:
           if (request.getUri().startsWith("/characteristics?")) {
-            return waitFor(database.getCharacteristicsValues(request.getUri().substring("/characteristics?id=".length())));
+            return waitFor(
+                database.getCharacteristicsValues(
+                    request.getUri().substring("/characteristics?id=".length())));
           }
           logger.warn("Unrecognized request for " + request.getUri());
           return new NotFoundResponse();

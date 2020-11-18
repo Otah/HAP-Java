@@ -5,7 +5,7 @@ package io.github.hapjava.characteristics;
  *
  * @author Andy Lintner
  */
-public interface EventableCharacteristic extends Characteristic {
+public interface EventableCharacteristic {
 
   /**
    * Begin listening to changes to this characteristic. When a change is made, call the provided

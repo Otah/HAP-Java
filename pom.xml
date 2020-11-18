@@ -149,12 +149,12 @@
 		<dependency>
 			<groupId>com.github.otah</groupId>
 			<artifactId>hap-api_2.12</artifactId>
-			<version>0.8.0-server-SNAPSHOT</version>
+			<version>0.9.0-server-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.eed3si9n</groupId>
-			<artifactId>shaded-scalajson_2.12</artifactId>
-			<version>1.0.0-M4</version>
+			<groupId>io.spray</groupId>
+			<artifactId>spray-json_2.12</artifactId>
+			<version>1.3.6</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

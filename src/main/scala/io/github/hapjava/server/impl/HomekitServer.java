@@ -30,11 +30,14 @@ public class HomekitServer {
   private final HomekitHttpServer http;
   private final HomekitRoot root;
 
-  public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo, int nThreads) throws IOException {
+  public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo, int nThreads)
+      throws IOException {
     String hostString = serverDef.host().getOrElse(() -> null);
-    InetAddress host = hostString == null ? InetAddress.getLocalHost() : InetAddress.getByName(hostString);
+    InetAddress host =
+        hostString == null ? InetAddress.getLocalHost() : InetAddress.getByName(hostString);
     http = new HomekitHttpServer(host, serverDef.port(), nThreads);
-    root = new HomekitRoot(serverDef.root().info().label(), http, host, new AuthConverter(authInfo));
+    root =
+        new HomekitRoot(serverDef.root().info().label(), http, host, new AuthConverter(authInfo));
   }
 
   public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo) throws IOException {
