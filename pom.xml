@@ -11,8 +11,10 @@
 
 	<properties>
     	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<scala>2.12</scala>
+		<lib.scala.version>11</lib.scala.version>
 		<netty.version>4.1.42.Final</netty.version>
-
+		<slf4j.version>1.7.10</slf4j.version>
 	</properties>
 
 	<licenses>
@@ -53,7 +55,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.10</version>
+			<version>${slf4j.version}</version>
 		</dependency>
 
 		<dependency>
@@ -143,23 +145,38 @@
 		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
-			<version>2.12.11</version>
+			<version>${scala}.${lib.scala.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.github.otah</groupId>
-			<artifactId>hap-api_2.12</artifactId>
+			<artifactId>hap-api_${scala}</artifactId>
 			<version>0.9.0-server-SNAPSHOT</version>
 		</dependency>
+
 		<dependency>
 			<groupId>io.spray</groupId>
-			<artifactId>spray-json_2.12</artifactId>
+			<artifactId>spray-json_${scala}</artifactId>
 			<version>1.3.6</version>
 		</dependency>
+
+		<dependency>
+			<groupId>com.typesafe.scala-logging</groupId>
+			<artifactId>scala-logging_${scala}</artifactId>
+			<version>3.9.2</version>
+		</dependency>
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>${slf4j.version}</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -170,6 +187,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j-over-slf4j</artifactId>
+			<version>${slf4j.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -261,6 +284,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!--
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>3.1.1</version>
@@ -271,14 +295,15 @@
 				</configuration>
 				<executions>
 					<execution>
-						<id>make-assembly</id> <!-- this is used for inheritance merges -->
-						<phase>package</phase> <!-- bind to the packaging phase -->
+						<id>make-assembly</id> <! - - this is used for inheritance merges - - >
+						<phase>package</phase> <! - - bind to the packaging phase - - >
 						<goals>
 							<goal>single</goal>
 						</goals>
 					</execution>
 				</executions>
 			</plugin>
+			-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-scm-publish-plugin</artifactId>
@@ -345,6 +370,7 @@
 		</snapshotRepository>
 	</distributionManagement>
 
+	<!--
 	<reporting>
 		<plugins>
 			<plugin>
@@ -428,5 +454,6 @@
 			</build>
 		</profile>
 	</profiles>
+	-->
 
 </project>

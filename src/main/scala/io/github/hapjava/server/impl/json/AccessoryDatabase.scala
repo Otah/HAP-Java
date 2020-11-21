@@ -5,7 +5,8 @@ import java.util.concurrent.ConcurrentHashMap
 import com.github.otah.hap.api._
 import com.github.otah.hap.api.json.AccessoryJson
 import com.github.otah.hap.api.server.HomeKitRoot
-import io.github.hapjava.characteristics.HomekitCharacteristicChangeCallback
+import com.typesafe.scalalogging.Logger
+import io.github.hapjava.characteristics.{EventableCharacteristic, HomekitCharacteristicChangeCallback}
 import io.github.hapjava.server.impl.connections.SubscriptionManager
 import io.github.hapjava.server.impl.http.{HomekitClientConnection, HttpResponse}
 import spray.json._
@@ -21,41 +22,52 @@ class AccessoryDatabase(
 ) {
   import AccessoryDatabase._
 
+  private val log = Logger[AccessoryDatabase]
+
+  private def logCharacteristic(text: => String)(implicit ctx: ChContext): Unit =
+    log.debug(s"[CH ${ctx.aid}.${ctx.iid}] $text")
+
   private object JsonProtocol extends DefaultJsonProtocol {
     implicit val format1 = jsonFormat4(SingleCharacteristicAdjustment)
     implicit val format2 = jsonFormat1(CharacteristicsPutRequest)
   }
   import JsonProtocol._
 
-  private def toEventable(characteristic: LowLevelCharacteristic) = characteristic.jsonValueNotifier map { notifier =>
-    new io.github.hapjava.characteristics.EventableCharacteristic {
+  private def toEventable(characteristic: LowLevelCharacteristic)(implicit ctx: ChContext) = {
+    def convertNotifier(notifier: LowLevelNotifier): EventableCharacteristic = new EventableCharacteristic {
 
       private val subscriptions = new ConcurrentHashMap[Subscription, Unit]()
 
       override def subscribe(callback: HomekitCharacteristicChangeCallback): Unit = {
+        logCharacteristic("Subscribing a new change callback")
         val subscription = notifier.subscribe { v =>
           Future(callback.changed(v))
         }
 
         subscriptions.put(subscription, ())
+        logCharacteristic(s"Current number of subscriptions: ${subscriptions.size}")
       }
 
       override def unsubscribe(): Unit = {
+        logCharacteristic("Unsubscribing change callbacks")
         subscriptions.keySet().asScala.toSet foreach { subscription: Subscription =>
           subscriptions.remove(subscription)
           subscription.unsubscribe()
         }
       }
     }
+
+    characteristic.jsonValueNotifier map convertNotifier
   }
 
   private val characteristicsAsMap = root.accessories.flatMap {
     case (InstanceId(aid), accessory) =>
-      val flatCharacteristics = accessory.services flatMap {
+      val flatCharacteristics = accessory.lowLevelServices flatMap {
         case (_, service) => service.characteristics
       }
       flatCharacteristics map {
-        case (InstanceId(iid), characteristic) => (aid, iid) -> (characteristic, toEventable(characteristic))
+        case (InstanceId(iid), characteristic) =>
+          (aid, iid) -> (characteristic, toEventable(characteristic)(ChContext(aid, iid)))
       }
   }.toMap
 
@@ -71,6 +83,7 @@ class AccessoryDatabase(
       } flatMap {
       case tuple @ (aid, iid) => characteristicsAsMap.get(tuple) map (_._1.readJsonValue()) map ((aid, iid, _))
     }
+    log.debug(s"Attempting to get values of characteristics $ids")
     AccessoryJson.characteristicsValues(found) map respond
   }
 
@@ -82,6 +95,7 @@ class AccessoryDatabase(
 
     try {
       val request = body.parseJsonTo[CharacteristicsPutRequest]
+      log.debug(s"Putting characteristic values or EVs:\n$request")
 
       val withMatchedCharacteristics = request.characteristics flatMap { update =>
         characteristicsAsMap.get((update.aid, update.iid)) map (update -> _)
@@ -108,4 +122,6 @@ object AccessoryDatabase {
 
   case class SingleCharacteristicAdjustment(aid: Int, iid: Int, ev: Option[Boolean], value: Option[JsValue])
   case class CharacteristicsPutRequest(characteristics: Seq[SingleCharacteristicAdjustment])
+
+  private case class ChContext(aid: Int, iid: Int)
 }
