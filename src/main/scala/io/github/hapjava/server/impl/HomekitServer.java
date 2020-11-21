@@ -1,6 +1,5 @@
 package io.github.hapjava.server.impl;
 
-import com.github.otah.hap.api.server.HomeKitAuthentication;
 import com.github.otah.hap.api.server.HomeKitServer;
 import io.github.hapjava.server.HomekitAuthInfo;
 import io.github.hapjava.server.impl.http.impl.HomekitHttpServer;
@@ -30,8 +29,7 @@ public class HomekitServer {
   private final HomekitHttpServer http;
   private final HomekitRoot root;
 
-  public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo, int nThreads)
-      throws IOException {
+  public HomekitServer(HomeKitServer serverDef, int nThreads) throws IOException {
     String hostString = serverDef.host().getOrElse(() -> null);
     InetAddress host =
         hostString == null ? InetAddress.getLocalHost() : InetAddress.getByName(hostString);
@@ -41,12 +39,12 @@ public class HomekitServer {
             serverDef.root().info().label(),
             http,
             host,
-            new AuthConverter(authInfo),
+            new AuthConverter(serverDef.root().auth()),
             serverDef.root());
   }
 
-  public HomekitServer(HomeKitServer serverDef, HomeKitAuthentication authInfo) throws IOException {
-    this(serverDef, authInfo, Runtime.getRuntime().availableProcessors());
+  public HomekitServer(HomeKitServer serverDef) throws IOException {
+    this(serverDef, Runtime.getRuntime().availableProcessors());
   }
 
   public void start() {
