@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.github.otah.hap.api._
 import com.github.otah.hap.api.characteristics.PowerStateCharacteristic
-import com.github.otah.hap.api.information.Revision
+import com.github.otah.hap.api.information._
 import com.github.otah.hap.api.server._
 import com.github.otah.hap.api.services.experimental._
 
@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 object TestRunner extends App {
 
-  val switch1 = new HomeKitAccessory with SingleServiceAccessory with SwitchService with SequenceInstanceIds {
+  val switch1 = new HomeKitAccessory with SingleServiceAccessory with SwitchService with SequentialInstanceIds {
 
     override val info: HomeKitInfo = new HomeKitInfo {
       override def identification: () => Unit = () => println("Hello switch!")
@@ -51,32 +51,31 @@ object TestRunner extends App {
     }
   }
 
-  val bridge = new HomeKitBridge {
-    override def info: HomeKitInfo = new HomeKitInfo {
-      override def identification: () => Unit = () => println("Hello bridge!")
-      override def label: String = "Bridge1"
-      override def serialNumber: String = "none"
-      override def model: String = "testbridge1"
-      override def manufacturer: String = "Otah"
-      override def firmwareRevision: Revision = Revision("0.1")
-      override def hardwareRevision: Option[Revision] = None
-    }
-    override def accessories: Seq[Identified[HomeKitAccessory]] = Seq(
-      3 <=> switch1,
-    )
+  val bridgeInfo = new HomeKitInfo {
+    override def identification: () => Unit = () => println("Hello bridge!")
+    override def label: String = "Bridge1"
+    override def serialNumber: String = "none"
+    override def model: String = "testbridge1"
+    override def manufacturer: String = "Otah"
+    override def firmwareRevision: Revision = Revision("0.1")
+    override def hardwareRevision: Option[Revision] = None
   }
+
+  val bridge = HomeKitBridge.WithInfo(bridgeInfo)(
+    3 <=> switch1,
+  )
 
   import io.github.hapjava.server.impl.{HomekitUtils => utils}
   val pin = utils.generatePin()
 
   println(s"PIN: $pin")
 
-  val auth = HomeKitAuthentication(
+  implicit val auth = HomeKitAuthentication(
     AuthInfoStorage(initialUserKeys = Map.empty, onChange = _ => ()),
     AuthSecurityInfo(utils.generateMac(), utils.generateSalt(), utils.generateKey().toSeq, pin),
   )
 
-  val serverDefinition = HomeKitServer(port = 1234, host = Some("10.11.0.156"))(HomeKitRoot.bridge(bridge, auth))
+  val serverDefinition = HomeKitServer(port = 1234, host = Some("10.11.0.156"))(bridge.asRoot)
 
   val server = new io.github.hapjava.server.impl.HomekitServer(serverDefinition)
   server.start()

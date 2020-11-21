@@ -16,7 +16,7 @@ public class HomekitRegistry {
   }
 
   public String getLabel() {
-    return root.info().label();
+    return root.label();
   }
 
   public boolean isAllowUnauthenticatedRequests() {

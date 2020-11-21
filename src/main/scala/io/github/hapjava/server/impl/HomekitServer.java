@@ -36,7 +36,7 @@ public class HomekitServer {
     http = new HomekitHttpServer(host, serverDef.port(), nThreads);
     root =
         new HomekitRoot(
-            serverDef.root().info().label(),
+            serverDef.root().label(),
             http,
             host,
             new AuthConverter(serverDef.root().auth()),

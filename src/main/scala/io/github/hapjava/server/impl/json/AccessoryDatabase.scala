@@ -51,7 +51,7 @@ class AccessoryDatabase(
 
   private val characteristicsAsMap = root.accessories.flatMap {
     case (InstanceId(aid), accessory) =>
-      val flatCharacteristics = accessory.services flatMap {
+      val flatCharacteristics = accessory.lowLevelServices flatMap {
         case (_, service) => service.characteristics
       }
       flatCharacteristics map {
