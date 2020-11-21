@@ -66,7 +66,7 @@ object TestRunner extends App {
   )
 
   import io.github.hapjava.server.impl.{HomekitUtils => utils}
-  val pin = utils.generatePin()
+  val pin = "147-25-369"
 
   println(s"PIN: $pin")
 
