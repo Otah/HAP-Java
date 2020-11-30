@@ -60,16 +60,15 @@ class AccessoryDatabase(
     characteristic.jsonValueNotifier map convertNotifier
   }
 
-  private val characteristicsAsMap = root.accessories.flatMap {
-    case (InstanceId(aid), accessory) =>
-      val flatCharacteristics = accessory.lowLevelServices flatMap {
-        case (_, service) => service.characteristics
+  private val characteristicsAsMap: Map[ChContext, (LowLevelCharacteristic, Option[EventableCharacteristic])] = {
+    val flattenedTuples = root.accessories flatMap { acc =>
+      acc.accessory.lowLevelServices flatMap (_.service.characteristics) map { ch =>
+        implicit val ids = ChContext(acc.aid.value, ch.iid.value)
+        ids -> (ch.characteristic, toEventable(ch.characteristic))
       }
-      flatCharacteristics map {
-        case (InstanceId(iid), characteristic) =>
-          (aid, iid) -> (characteristic, toEventable(characteristic)(ChContext(aid, iid)))
-      }
-  }.toMap
+    }
+    flattenedTuples.toMap
+  }
 
   private object Num {
     def unapply(text: String): Option[Int] = Try(text.toInt).toOption
@@ -81,7 +80,7 @@ class AccessoryDatabase(
     val found = ids.split(',').toSeq map (_.split('.').toSeq) collect {
         case Seq(Num(aid), Num(iid)) => aid -> iid
       } flatMap {
-      case tuple @ (aid, iid) => characteristicsAsMap.get(tuple) map (_._1.readJsonValue()) map ((aid, iid, _))
+      case (aid, iid) => characteristicsAsMap.get(ChContext(aid, iid)) map (_._1.readJsonValue()) map ((aid, iid, _))
     }
     log.debug(s"Attempting to get values of characteristics $ids")
     AccessoryJson.characteristicsValues(found) map respond
@@ -98,7 +97,7 @@ class AccessoryDatabase(
       log.debug(s"Putting characteristic values or EVs:\n$request")
 
       val withMatchedCharacteristics = request.characteristics flatMap { update =>
-        characteristicsAsMap.get((update.aid, update.iid)) map (update -> _)
+        characteristicsAsMap.get(ChContext(update.aid, update.iid)) map (update -> _)
       }
 
       withMatchedCharacteristics foreach { case (update, (characteristic, maybeEventable)) =>
