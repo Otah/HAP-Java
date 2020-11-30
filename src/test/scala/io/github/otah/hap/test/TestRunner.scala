@@ -31,7 +31,11 @@ object TestRunner extends App {
       private val state = new AtomicBoolean(false)
       private val notifiers = new ConcurrentHashMap[Int, Boolean => Future[Unit]]()
 
-      override def reader: Some[Reader] = Reader(Future.successful(state.get()))
+      override def reader: Some[Reader] = Reader {
+        val current = state.get()
+        println(s"Getting state of the switch: $current")
+        Future.successful(current)
+      }
 
       override def writer: Some[Writer] = Writer { newValue =>
         state.set(newValue)
@@ -71,7 +75,13 @@ object TestRunner extends App {
   println(s"PIN: $pin")
 
   implicit val auth = HomeKitAuthentication(
-    AuthInfoStorage(initialUserKeys = Map.empty, onChange = _ => ()),
+    AuthInfoStorage.inMemory(
+      onChange = { getKeys =>
+        print("Current state of the key store: ")
+        val keys = getKeys().keys
+        if (keys.isEmpty) println("No keys") else println(keys.toSeq.sorted.mkString(","))
+      }
+    ),
     AuthSecurityInfo(utils.generateMac(), utils.generateSalt(), utils.generateKey().toSeq, pin),
   )
 
